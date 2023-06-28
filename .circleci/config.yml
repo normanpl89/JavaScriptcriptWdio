@@ -1,0 +1,81 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+orbs: 
+  browser-tools: circleci/browser-tools@1.3.0 
+  circleci-tailscale: threecomma/circleci-tailscale@2.2.0
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  wyre-automation:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/node:16.15.0-browsers
+    parameters:
+      tailscale-auth-key:
+        type: env_var_name
+        default: TAILSCALE_AUTH_KEY
+    environment:
+      ########## JIRA #############
+      enableJiraReport: $enableJiraReport
+      jiraAPI: $jiraAPI
+      jiraToken: $jiraToken
+      ########## UI Tests #########
+      base_admin_url: $base_admin_url
+      test_account_email: $test_account_email
+      test_account_pwd: $test_account_pwd
+      ####### Testrails #######
+      saveTestRails: $saveTestRails
+      testRunId: $testRunId
+      buildVersion: $buildVersion
+      testrailsUrl: $testrailsUrl
+      TestRailUser: $TestRailUser
+      userPwd: $userPwd
+      ###### BrowserStack #####
+      BROWSERSTACK_USER: $BROWSERSTACK_USER
+      BROWSERSTACK_ACCESS_KEY: $BROWSERSTACK_ACCESS_KEY
+      androidDeviceName: Google Pixel 3
+      androidPlatFormVersion: 11.0 
+      
+
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - browser-tools/install-browser-tools
+      - checkout
+      - circleci-tailscale/connect
+      - run:
+          name: "Say hello"
+          command: | 
+           echo "Hello, World!"
+           node --version
+           npm i
+           echo $baseAPI
+           cp .env_example .env
+           ls
+           cat .env
+      - run:
+          name: "RUN API TEST"
+          command: | 
+            npm run api
+      - run:
+          name: "RUN UI TEST"
+          command: | 
+            npm run wdio
+      - run:
+          name: "RUN UI TEST in android browserstack"
+          command: | 
+            npm run wdioBrowserStack
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+workflows:
+  wyre:
+    jobs:
+      - wyre-automation:
+          context:
+            - org-global
+            - build
